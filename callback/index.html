@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postool TikTok Callback</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    body {
+      margin: 0;
+      background: #f7f3ea;
+      color: #1d1a16;
+    }
+    main {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 5vw, 56px);
+      letter-spacing: -0.05em;
+    }
+    .card {
+      margin-top: 20px;
+      border: 1px solid rgba(0, 0, 0, .12);
+      border-radius: 22px;
+      padding: 22px;
+      background: rgba(255, 255, 255, .7);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .08);
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      margin: 14px 0;
+      font-weight: 700;
+    }
+    input, textarea {
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid rgba(0, 0, 0, .2);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      background: white;
+      color: #1d1a16;
+    }
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 18px;
+      background: #111;
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .muted {
+      color: #6c6256;
+    }
+    .ok {
+      color: #137a3d;
+      font-weight: 900;
+    }
+    .bad {
+      color: #b3261e;
+      font-weight: 900;
+    }
+    code {
+      border-radius: 8px;
+      padding: 2px 6px;
+      background: rgba(0, 0, 0, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #17130f;
+        color: #f4ecdf;
+      }
+      .card {
+        background: rgba(255, 255, 255, .06);
+        border-color: rgba(255, 255, 255, .16);
+      }
+      input, textarea {
+        background: #211c17;
+        color: #f4ecdf;
+        border-color: rgba(255, 255, 255, .2);
+      }
+      .muted {
+        color: #b7aa9a;
+      }
+      code {
+        background: rgba(255, 255, 255, .12);
+      }
+      button {
+        background: #f4ecdf;
+        color: #17130f;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Postool TikTok Callback</h1>
+    <p class="muted">這頁只用來接 TikTok OAuth callback，顯示 authorization code，方便拿去 Worker 或本機 PoC script 交換 token。</p>
+
+    <section class="card">
+      <p id="stateStatus"></p>
+      <label>
+        code
+        <textarea id="code" readonly></textarea>
+      </label>
+      <label>
+        state
+        <input id="state" readonly>
+      </label>
+      <label>
+        error
+        <textarea id="error" readonly></textarea>
+      </label>
+      <label>
+        token-only command
+        <textarea id="command" readonly></textarea>
+      </label>
+      <div class="row">
+        <button id="copyCode">複製 code</button>
+        <button id="copyCommand">複製 command</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code') || '';
+    const state = params.get('state') || '';
+    const error = params.get('error_description') || params.get('error') || '';
+    const expected = sessionStorage.getItem('postool_tiktok_oauth_state') || '';
+    const redirectUri = 'https://emn178.github.io/postool/callback/';
+
+    $('code').value = code;
+    $('state').value = state;
+    $('error').value = error;
+
+    if (error) {
+      $('stateStatus').innerHTML = '<span class="bad">TikTok 回傳錯誤。</span>';
+    } else if (expected && state === expected) {
+      $('stateStatus').innerHTML = '<span class="ok">state 驗證通過。</span>';
+    } else if (expected) {
+      $('stateStatus').innerHTML = '<span class="bad">state 不一致，請不要使用這個 code。</span>';
+    } else {
+      $('stateStatus').innerHTML = '<span class="muted">沒有找到 sessionStorage 裡的 expected state；如果這是手動測試，請自行確認 state。</span>';
+    }
+
+    const command = [
+      "TIKTOK_CLIENT_KEY='你的 client key'",
+      "TIKTOK_CLIENT_SECRET='你的 client secret'",
+      `TIKTOK_CODE='${code.replaceAll("'", "'\\''")}'`,
+      `TIKTOK_REDIRECT_URI='${redirectUri}'`,
+      'node scripts/tiktok-pull-from-url.mjs --token-only --print-tokens',
+    ].join(' \\\n');
+    $('command').value = command;
+
+    async function copy(value) {
+      await navigator.clipboard.writeText(value);
+    }
+    $('copyCode').addEventListener('click', () => copy($('code').value));
+    $('copyCommand').addEventListener('click', () => copy($('command').value));
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postool TikTok Binding Test</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    body {
+      margin: 0;
+      background: #f7f3ea;
+      color: #1d1a16;
+    }
+    main {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 5vw, 56px);
+      letter-spacing: -0.05em;
+    }
+    .card {
+      margin-top: 20px;
+      border: 1px solid rgba(0, 0, 0, .12);
+      border-radius: 22px;
+      padding: 22px;
+      background: rgba(255, 255, 255, .7);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .08);
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      margin: 14px 0;
+      font-weight: 700;
+    }
+    input, textarea {
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid rgba(0, 0, 0, .2);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      background: white;
+      color: #1d1a16;
+    }
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    button, a.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 18px;
+      background: #111;
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .muted {
+      color: #6c6256;
+    }
+    code {
+      border-radius: 8px;
+      padding: 2px 6px;
+      background: rgba(0, 0, 0, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #17130f;
+        color: #f4ecdf;
+      }
+      .card {
+        background: rgba(255, 255, 255, .06);
+        border-color: rgba(255, 255, 255, .16);
+      }
+      input, textarea {
+        background: #211c17;
+        color: #f4ecdf;
+        border-color: rgba(255, 255, 255, .2);
+      }
+      .muted {
+        color: #b7aa9a;
+      }
+      code {
+        background: rgba(255, 255, 255, .12);
+      }
+      button, a.button {
+        background: #f4ecdf;
+        color: #17130f;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Postool TikTok Binding Test</h1>
+    <p class="muted">產生 TikTok OAuth 授權網址，callback 回 <code>https://emn178.github.io/postool/callback/</code>。</p>
+
+    <section class="card">
+      <label>
+        TikTok Client Key / App ID
+        <input id="clientKey" autocomplete="off" placeholder="awxxxxxxxxxxxxxxxxxxxx">
+      </label>
+      <label>
+        Redirect URI
+        <input id="redirectUri" value="https://emn178.github.io/postool/callback/">
+      </label>
+      <label>
+        Scopes
+        <input id="scopes" value="user.info.basic,video.publish,video.upload">
+      </label>
+      <label>
+        State
+        <input id="state" autocomplete="off">
+      </label>
+      <div class="row">
+        <button id="randomState">重新產生 state</button>
+        <button id="build">產生授權網址</button>
+        <a id="open" class="button" href="#" target="_blank" rel="noopener">開啟 TikTok 授權</a>
+      </div>
+      <label>
+        Authorization URL
+        <textarea id="authUrl" readonly></textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Worker 影片代理 URL</h2>
+      <p class="muted">把 Dropbox / Drive 等來源 URL 包成 TikTok 可驗證 ownership 的 Worker URL。TikTok 看到的是 <code>postool.emn178.workers.dev</code>。</p>
+      <label>
+        Source video URL
+        <input id="sourceVideoUrl" placeholder="https://www.dropbox.com/...&raw=1">
+      </label>
+      <label>
+        Worker video URL
+        <textarea id="workerVideoUrl" readonly></textarea>
+      </label>
+      <div class="row">
+        <button id="buildWorkerUrl">產生 Worker URL</button>
+        <a id="testWorkerUrl" class="button" href="#" target="_blank" rel="noopener">開啟測試</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const workerBase = 'https://postool.emn178.workers.dev';
+
+    function randomState() {
+      const bytes = new Uint8Array(18);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function buildAuthUrl() {
+      const state = $('state').value.trim() || randomState();
+      $('state').value = state;
+      sessionStorage.setItem('postool_tiktok_oauth_state', state);
+
+      const params = new URLSearchParams({
+        client_key: $('clientKey').value.trim(),
+        response_type: 'code',
+        scope: $('scopes').value.trim(),
+        redirect_uri: $('redirectUri').value.trim(),
+        state,
+      });
+      const url = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+      $('authUrl').value = url;
+      $('open').href = url;
+    }
+
+    function buildWorkerUrl() {
+      const source = $('sourceVideoUrl').value.trim();
+      const url = source ? `${workerBase}/video?url=${encodeURIComponent(source)}` : '';
+      $('workerVideoUrl').value = url;
+      $('testWorkerUrl').href = url || '#';
+    }
+
+    $('randomState').addEventListener('click', () => {
+      $('state').value = randomState();
+    });
+    $('build').addEventListener('click', buildAuthUrl);
+    $('buildWorkerUrl').addEventListener('click', buildWorkerUrl);
+    $('state').value = randomState();
+    buildAuthUrl();
+  </script>
+</body>
+</html>
