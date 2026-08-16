@@ -5,6 +5,7 @@ window.POSTOOL_CONFIG = {
   googleClientId: '1072700165068-sldbo6ndrfidpbud39ltkdt0b8g76qkn.apps.googleusercontent.com',
   workerOrigin: 'https://postool.emn178.workers.dev',
   tiktokClientKey: 'sbawpzmdat5fhoir6e',
-  // Must match the Worker's VIDEO_SIGN_KEY secret in deployed environments.
-  workerVideoSignKey: '',
+  googlePickerApiKey: 'AIzaSyCTPSMEr9QXQmNCliJik8LS6p1yQMPj65s',
+  // Google Cloud project number. Required by Google Picker.
+  googleAppId: '1072700165068'
 };
