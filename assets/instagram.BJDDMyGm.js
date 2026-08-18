@@ -1,1 +1,0 @@
-import{w as a}from"./workerApi.Cd-nYplB.js";async function s(t){return a("/platforms/instagram/oauth/start",{method:"POST",body:t})}async function n(t){return a("/platforms/instagram/oauth/exchange",{method:"POST",body:t})}export{n as e,s};
