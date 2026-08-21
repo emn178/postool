@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://postool.emn178.cc/sitemap.xml
