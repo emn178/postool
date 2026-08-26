@@ -1,0 +1,1 @@
+import{w as a}from"./workerApi.BdKhHzos.js";async function n(t){return a("/platforms/instagram/oauth/start",{method:"POST",body:t})}async function s(t){return a("/platforms/instagram/oauth/exchange",{method:"POST",body:t})}async function r(t){return a(`/platform-posts/${encodeURIComponent(t.platformPostId)}/publish-now`,{method:"POST",body:t})}export{s as e,r as i,n as s};
