@@ -1,0 +1,1 @@
+import{w as o}from"./workerApi.DFwpNn99.js";async function s(t){return o("/platforms/threads/oauth/start",{method:"POST",body:t})}async function a(t){return o("/platforms/threads/oauth/exchange",{method:"POST",body:t})}async function r(t){return o(`/platform-posts/${encodeURIComponent(t.platformPostId)}/publish-now`,{method:"POST",body:t})}export{a as e,r as i,s};
